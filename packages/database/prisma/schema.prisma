@@ -1,0 +1,430 @@
+// Pharma Inventory SaaS - Prisma Schema
+// Multi-tenant, batch-first, audit-ready design
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// MULTI-TENANCY & USERS
+// ============================================================================
+
+model Tenant {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  status      String   @default("ACTIVE") // ACTIVE, SUSPENDED, DELETED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  // Relationships
+  users               User[]
+  products            Product[]
+  batches             Batch[]
+  warehouses          Warehouse[]
+  suppliers           Supplier[]
+  customers           Customer[]
+  inventoryMovements  InventoryMovement[]
+  qcRecords           QCRecord[]
+  recallEvents        RecallEvent[]
+  auditLogs           AuditLog[]
+  temperatureLogs     TemperatureLog[]
+
+  @@map("tenants")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  tenantId    String
+  email       String   @unique
+  firstName   String
+  lastName    String
+  role        UserRole @default(WAREHOUSE_USER)
+  status      String   @default("ACTIVE") // ACTIVE, INACTIVE, DELETED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  // Relationships
+  tenant              Tenant @relation(fields: [tenantId], references: [id])
+  inventoryMovements  InventoryMovement[]
+  qcRecordsPerformed  QCRecord[] @relation("QCPerformedBy")
+  qcRecordsApproved   QCRecord[] @relation("QCApprovedBy")
+  recallEvents        RecallEvent[]
+  auditLogs           AuditLog[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  QA_MANAGER
+  QA_ANALYST
+  WAREHOUSE_MANAGER
+  WAREHOUSE_USER
+  PROCUREMENT_USER
+  SALES_USER
+  AUDITOR
+}
+
+// ============================================================================
+// MASTER DATA
+// ============================================================================
+
+model Product {
+  id                String   @id @default(cuid())
+  tenantId          String
+  code              String   // Internal product code
+  name              String
+  genericName       String?
+  strength          String?  // e.g., "500mg"
+  dosageForm        String?  // e.g., "Tablet", "Capsule"
+  packSize          String?  // e.g., "10x10 strips"
+  hsnCode           String?  // HSN classification
+  drugClass         String?  // Controlled substance class
+  storageCondition  String?  // Storage requirements
+  shelfLifeMonths   Int?     // Shelf life in months
+  status            String   @default("ACTIVE")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
+
+  // Temperature requirements for cold chain
+  minTemperature    Float?   // Minimum storage temperature (°C)
+  maxTemperature    Float?   // Maximum storage temperature (°C)
+
+  // Relationships
+  tenant            Tenant @relation(fields: [tenantId], references: [id])
+  batches           Batch[]
+
+  @@unique([tenantId, code])
+  @@map("products")
+}
+
+model Warehouse {
+  id          String   @id @default(cuid())
+  tenantId    String
+  code        String
+  name        String
+  type        String   @default("REGULAR") // REGULAR, COLD_STORAGE, QUARANTINE
+  address     String?
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  // Relationships
+  tenant                    Tenant @relation(fields: [tenantId], references: [id])
+  movementsFrom             InventoryMovement[] @relation("MovementFromWarehouse")
+  movementsTo               InventoryMovement[] @relation("MovementToWarehouse")
+  temperatureLogs           TemperatureLog[]
+
+  @@unique([tenantId, code])
+  @@map("warehouses")
+}
+
+model Supplier {
+  id          String   @id @default(cuid())
+  tenantId    String
+  code        String
+  name        String
+  type        String   @default("MANUFACTURER") // MANUFACTURER, DISTRIBUTOR, API_SUPPLIER
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  // Relationships
+  tenant      Tenant @relation(fields: [tenantId], references: [id])
+  batches     Batch[]
+
+  @@unique([tenantId, code])
+  @@map("suppliers")
+}
+
+model Customer {
+  id          String   @id @default(cuid())
+  tenantId    String
+  code        String
+  name        String
+  type        String   @default("DISTRIBUTOR") // DISTRIBUTOR, HOSPITAL, PHARMACY
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  // Relationships
+  tenant        Tenant @relation(fields: [tenantId], references: [id])
+  recallImpacts RecallImpact[]
+
+  @@unique([tenantId, code])
+  @@map("customers")
+}
+
+// ============================================================================
+// BATCH & INVENTORY (CORE)
+// ============================================================================
+
+model Batch {
+  id              String   @id @default(cuid())
+  tenantId        String
+  productId       String
+  supplierId      String?
+  batchNumber     String   // Manufacturer's batch/lot number
+  internalBatch   String?  // Internal batch number if different
+  manufacturedDate DateTime?
+  expiryDate      DateTime
+  receivedDate    DateTime @default(now())
+  coaReference    String?  // Certificate of Analysis reference
+  status          BatchStatus @default(QUARANTINE)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  // Relationships
+  tenant              Tenant @relation(fields: [tenantId], references: [id])
+  product             Product @relation(fields: [productId], references: [id])
+  supplier            Supplier? @relation(fields: [supplierId], references: [id])
+  inventoryMovements  InventoryMovement[]
+  qcRecords           QCRecord[]
+  temperatureLogs     TemperatureLog[]
+  
+  // Recall relationships
+  recallEvents        RecallEvent[] @relation("RecallBatches")
+  
+  // Batch genealogy (parent-child relationships for repack/rework)
+  parentBatches       BatchGenealogy[] @relation("ChildBatch")
+  childBatches        BatchGenealogy[] @relation("ParentBatch")
+
+  @@unique([tenantId, productId, batchNumber])
+  @@map("batches")
+}
+
+enum BatchStatus {
+  QUARANTINE    // Default on receipt, awaiting QC
+  AVAILABLE     // QC passed, available for issue
+  RESERVED      // Reserved for specific order
+  BLOCKED       // QC failed, damaged, or restricted
+  EXPIRED       // Past expiry date
+  ISSUED        // Dispatched/consumed
+}
+
+model BatchGenealogy {
+  id            String @id @default(cuid())
+  parentBatchId String
+  childBatchId  String
+  relationship  String // REPACK, REWORK, SPLIT, MERGE
+  createdAt     DateTime @default(now())
+
+  // Relationships
+  parentBatch   Batch @relation("ParentBatch", fields: [parentBatchId], references: [id])
+  childBatch    Batch @relation("ChildBatch", fields: [childBatchId], references: [id])
+
+  @@unique([parentBatchId, childBatchId])
+  @@map("batch_genealogy")
+}
+
+model InventoryMovement {
+  id              String   @id @default(cuid())
+  tenantId        String
+  batchId         String
+  fromWarehouseId String?  // Null for receipts
+  toWarehouseId   String?  // Null for issues/consumption
+  movementType    MovementType
+  quantity        Float
+  uom             String   // Unit of measure
+  referenceType   String?  // PO, SO, TRANSFER_ORDER, ADJUSTMENT
+  referenceNumber String?  // Reference document number
+  reason          String?  // For adjustments, write-offs
+  createdBy       String
+  createdAt       DateTime @default(now())
+
+  // Relationships
+  tenant          Tenant @relation(fields: [tenantId], references: [id])
+  batch           Batch @relation(fields: [batchId], references: [id])
+  fromWarehouse   Warehouse? @relation("MovementFromWarehouse", fields: [fromWarehouseId], references: [id])
+  toWarehouse     Warehouse? @relation("MovementToWarehouse", fields: [toWarehouseId], references: [id])
+  user            User @relation(fields: [createdBy], references: [id])
+
+  @@map("inventory_movements")
+}
+
+enum MovementType {
+  RECEIPT       // Goods received from supplier
+  ISSUE         // Goods issued/dispatched
+  TRANSFER      // Inter-warehouse transfer
+  ADJUSTMENT    // Stock adjustment (+ or -)
+  WRITE_OFF     // Damage, expiry write-off
+  RETURN        // Customer return
+  REPACK        // Repacking operation
+}
+
+// ============================================================================
+// QUALITY CONTROL
+// ============================================================================
+
+model QCRecord {
+  id              String   @id @default(cuid())
+  tenantId        String
+  batchId         String
+  testType        String   // IQC, IPQC, FQC
+  overallStatus   QCStatus @default(PENDING)
+  performedBy     String?
+  performedAt     DateTime?
+  approvedBy      String?
+  approvedAt      DateTime?
+  remarks         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relationships
+  tenant          Tenant @relation(fields: [tenantId], references: [id])
+  batch           Batch @relation(fields: [batchId], references: [id])
+  performer       User? @relation("QCPerformedBy", fields: [performedBy], references: [id])
+  approver        User? @relation("QCApprovedBy", fields: [approvedBy], references: [id])
+  testResults     QCTestResult[]
+
+  @@map("qc_records")
+}
+
+enum QCStatus {
+  PENDING
+  IN_PROGRESS
+  PASS
+  HOLD
+  REJECT
+}
+
+model QCTestResult {
+  id            String @id @default(cuid())
+  qcRecordId    String
+  parameter     String  // e.g., "Assay", "Dissolution", "Moisture"
+  specification String  // e.g., "95.0-105.0%"
+  result        String  // Actual test result
+  status        String  @default("PASS") // PASS, FAIL, OOS, OOT
+  createdAt     DateTime @default(now())
+
+  // Relationships
+  qcRecord      QCRecord @relation(fields: [qcRecordId], references: [id])
+
+  @@map("qc_test_results")
+}
+
+// ============================================================================
+// RECALL & TRACEABILITY
+// ============================================================================
+
+model RecallEvent {
+  id            String   @id @default(cuid())
+  tenantId      String
+  recallNumber  String   // Internal recall number
+  title         String
+  description   String
+  severity      String   @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  status        String   @default("INITIATED") // INITIATED, IN_PROGRESS, CLOSED
+  initiatedBy   String
+  initiatedAt   DateTime @default(now())
+  closedAt      DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relationships
+  tenant        Tenant @relation(fields: [tenantId], references: [id])
+  initiator     User @relation(fields: [initiatedBy], references: [id])
+  batches       Batch[] @relation("RecallBatches")
+  impacts       RecallImpact[]
+
+  @@unique([tenantId, recallNumber])
+  @@map("recall_events")
+}
+
+model RecallImpact {
+  id            String @id @default(cuid())
+  recallEventId String
+  customerId    String?
+  warehouseId   String?
+  batchId       String?
+  quantity      Float?
+  status        String @default("PENDING") // PENDING, NOTIFIED, RETURNED, DISPOSED
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relationships
+  recallEvent   RecallEvent @relation(fields: [recallEventId], references: [id])
+  customer      Customer? @relation(fields: [customerId], references: [id])
+
+  @@map("recall_impacts")
+}
+
+// ============================================================================
+// COLD CHAIN & TEMPERATURE MONITORING
+// ============================================================================
+
+model TemperatureLog {
+  id            String   @id @default(cuid())
+  tenantId      String
+  batchId       String?  // Optional: link to specific batch
+  warehouseId   String?  // Optional: link to warehouse/location
+  deviceId      String?  // IoT device identifier
+  temperature   Float    // Temperature in Celsius
+  humidity      Float?   // Optional humidity reading
+  timestamp     DateTime
+  isExcursion   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  // Relationships
+  tenant        Tenant @relation(fields: [tenantId], references: [id])
+  batch         Batch? @relation(fields: [batchId], references: [id])
+  warehouse     Warehouse? @relation(fields: [warehouseId], references: [id])
+
+  @@map("temperature_logs")
+}
+
+// ============================================================================
+// AUDIT & COMPLIANCE
+// ============================================================================
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  tenantId      String
+  userId        String
+  entityType    String   // "Batch", "InventoryMovement", "QCRecord", etc.
+  entityId      String   // ID of the affected record
+  action        String   // CREATE, UPDATE, DELETE
+  oldValues     Json?    // Previous state (for updates)
+  newValues     Json?    // New state
+  ipAddress     String?
+  userAgent     String?
+  timestamp     DateTime @default(now())
+
+  // Relationships
+  tenant        Tenant @relation(fields: [tenantId], references: [id])
+  user          User @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+// ============================================================================
+// INDEXES FOR PERFORMANCE
+// ============================================================================
+
+// Batch lookups by product and expiry (FEFO)
+@@index([tenantId, productId, expiryDate], map: "idx_batch_fefo", on: Batch)
+
+// Inventory movements by batch and date
+@@index([tenantId, batchId, createdAt], map: "idx_movement_batch_date", on: InventoryMovement)
+
+// QC records by batch and status
+@@index([tenantId, batchId, overallStatus], map: "idx_qc_batch_status", on: QCRecord)
+
+// Temperature logs by batch and timestamp
+@@index([tenantId, batchId, timestamp], map: "idx_temp_batch_time", on: TemperatureLog)
+
+// Audit logs by entity and timestamp
+@@index([tenantId, entityType, entityId, timestamp], map: "idx_audit_entity_time", on: AuditLog)

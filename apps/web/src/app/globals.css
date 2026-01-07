@@ -1,0 +1,194 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Better dark background - lighter, more pleasant */
+    --background: 222.2 47% 11%;
+    --foreground: 210 40% 98%;
+    
+    /* Cards should be slightly lighter than background for depth */
+    --card: 217.2 32.6% 17.5%;
+    --card-foreground: 210 40% 95%;
+    
+    --popover: 217.2 32.6% 17.5%;
+    --popover-foreground: 210 40% 95%;
+    
+    /* Brighter, more vibrant primary color for dark mode */
+    --primary: 217.2 91.2% 65%;
+    --primary-foreground: 222.2 47% 11%;
+    
+    /* Better secondary colors */
+    --secondary: 217.2 32.6% 22%;
+    --secondary-foreground: 210 40% 95%;
+    
+    /* Improved muted colors for better contrast - lighter text */
+    --muted: 217.2 32.6% 20%;
+    --muted-foreground: 215 20.2% 80%;
+    
+    --accent: 217.2 32.6% 22%;
+    --accent-foreground: 210 40% 95%;
+    
+    --destructive: 0 72.2% 50.6%;
+    --destructive-foreground: 210 40% 98%;
+    
+    /* Better borders - more visible but not harsh */
+    --border: 217.2 32.6% 25%;
+    --input: 217.2 32.6% 20%;
+    --ring: 217.2 91.2% 65%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  
+  /* Ensure all text has proper contrast in dark mode */
+  .dark {
+    color-scheme: dark;
+  }
+  
+  /* Override default text colors for better dark mode visibility */
+  .dark h1,
+  .dark h2,
+  .dark h3,
+  .dark h4,
+  .dark h5,
+  .dark h6 {
+    @apply text-slate-100;
+  }
+  
+  .dark p {
+    @apply text-slate-200;
+  }
+  
+  .dark span {
+    @apply text-slate-200;
+  }
+}
+
+/* Font size preferences */
+@layer base {
+  :root {
+    --font-size-base: 16px;
+  }
+  
+  .font-size-small {
+    --font-size-base: 14px;
+    font-size: 14px;
+  }
+  
+  .font-size-default {
+    --font-size-base: 16px;
+    font-size: 16px;
+  }
+  
+  .font-size-large {
+    --font-size-base: 18px;
+    font-size: 18px;
+  }
+  
+  html {
+    font-size: var(--font-size-base);
+  }
+  
+  body {
+    font-size: var(--font-size-base);
+  }
+}
+
+/* Accessibility preferences */
+@layer base {
+  .high-contrast {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+    --border: 0 0% 0%;
+  }
+  
+  .dark.high-contrast {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --border: 0 0% 100%;
+  }
+  
+  .reduced-motion *,
+  .reduced-motion *::before,
+  .reduced-motion *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .keyboard-focus:focus-visible {
+    outline: 3px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+}
+
+/* Enterprise pharma theme customizations */
+@layer components {
+  .pharma-sidebar {
+    @apply bg-slate-50 dark:bg-[hsl(222.2,47%,11%)] border-r border-slate-200 dark:border-[hsl(217.2,32.6%,25%)];
+  }
+  
+  .pharma-topbar {
+    @apply bg-white dark:bg-[hsl(222.2,47%,11%)] border-b border-slate-200 dark:border-[hsl(217.2,32.6%,25%)] shadow-sm;
+  }
+  
+  .pharma-card {
+    @apply bg-white dark:bg-[hsl(217.2,32.6%,17.5%)] border border-slate-200 dark:border-[hsl(217.2,32.6%,25%)] rounded-lg shadow-sm;
+  }
+  
+  .pharma-table {
+    @apply bg-white dark:bg-[hsl(217.2,32.6%,17.5%)] border border-slate-200 dark:border-[hsl(217.2,32.6%,25%)] rounded-lg;
+  }
+  
+  .status-badge-available {
+    @apply bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700/50;
+  }
+  
+  .status-badge-quarantine {
+    @apply bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-700/50;
+  }
+  
+  .status-badge-blocked {
+    @apply bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 border-red-200 dark:border-red-700/50;
+  }
+  
+  .status-badge-expired {
+    @apply bg-gray-100 dark:bg-gray-800/60 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700/50;
+  }
+  
+  .fefo-indicator {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-200;
+  }
+}
