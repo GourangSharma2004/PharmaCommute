@@ -297,9 +297,9 @@ export function Sidebar() {
   }
 
   return (
-    <div className="pharma-sidebar w-64 h-screen flex flex-col">
+    <div className="pharma-sidebar fixed left-0 top-0 w-64 h-screen flex flex-col bg-white dark:bg-[hsl(217.2,32.6%,17.5%)] border-r border-slate-200 dark:border-[hsl(217.2,32.6%,25%)] z-10">
       {/* Header section */}
-      <div className="p-4 pb-0">
+      <div className="p-4 pb-0 flex-shrink-0">
         <div className="mb-8">
           <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">PharmaFlow</h1>
           <p className="text-sm text-slate-600 dark:text-slate-400">{user.tenantName}</p>
@@ -307,14 +307,14 @@ export function Sidebar() {
       </div>
 
       {/* Scrollable navigation section */}
-      <div className="flex-1 overflow-y-auto px-4">
+      <div className="flex-1 overflow-y-auto px-4 min-h-0">
         <nav className="space-y-2 pb-4">
           {visibleNavItems.map(item => renderNavItem(item))}
         </nav>
       </div>
 
       {/* Fixed user info at bottom */}
-      <div className="p-4 pt-0 mt-auto">
+      <div className="p-4 pt-0 flex-shrink-0 border-t border-slate-200 dark:border-[hsl(217.2,32.6%,25%)]">
         <div className="bg-white dark:bg-[hsl(217.2,32.6%,17.5%)] border border-slate-200 dark:border-[hsl(217.2,32.6%,25%)] rounded-lg p-3">
           <div className="flex items-center">
             <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center">

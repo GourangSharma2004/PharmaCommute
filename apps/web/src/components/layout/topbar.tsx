@@ -1,10 +1,11 @@
 'use client'
 
-import { Bell, Search, LogOut } from 'lucide-react'
+import { Search, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAuthStore } from '@/store/auth-store'
 import { ROLE_DISPLAY_NAMES } from '@/lib/permissions'
+import { NotificationDropdown } from '@/components/notifications/notification-dropdown'
 
 export function Topbar() {
   const { user, logout } = useAuthStore()
@@ -26,11 +27,8 @@ export function Topbar() {
 
       {/* Right side */}
       <div className="flex items-center space-x-4">
-        {/* Notifications */}
-        <Button variant="ghost" size="sm" className="relative text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100">
-          <Bell className="h-4 w-4" />
-          <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 dark:bg-red-600 rounded-full"></span>
-        </Button>
+        {/* Notifications Dropdown */}
+        <NotificationDropdown />
 
         {/* User menu */}
         <div className="flex items-center space-x-3">

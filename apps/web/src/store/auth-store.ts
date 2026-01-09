@@ -1,7 +1,7 @@
 'use client'
 
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 import { AuthState, User, UserRole } from '@/types/auth'
 import { createPermissionUtils } from '@/lib/permissions'
 
@@ -11,6 +11,8 @@ interface AuthActions {
   setUser: (user: User) => void
   setLoading: (loading: boolean) => void
   getPermissions: () => ReturnType<typeof createPermissionUtils> | null
+  _hasHydrated: boolean
+  setHasHydrated: (state: boolean) => void
 }
 
 type AuthStore = AuthState & AuthActions
@@ -75,6 +77,10 @@ export const useAuthStore = create<AuthStore>()(
       accessToken: null,
       isAuthenticated: false,
       isLoading: false,
+      _hasHydrated: false,
+      setHasHydrated: (state) => {
+        set({ _hasHydrated: state })
+      },
 
       // Actions
       login: async (email: string, password: string) => {
@@ -135,6 +141,11 @@ export const useAuthStore = create<AuthStore>()(
         accessToken: state.accessToken,
         isAuthenticated: state.isAuthenticated,
       }),
+      onRehydrateStorage: () => {
+        return (state) => {
+          state?.setHasHydrated(true)
+        }
+      },
     }
   )
 )
