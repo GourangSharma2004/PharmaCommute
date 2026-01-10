@@ -19,52 +19,52 @@ type AuthStore = AuthState & AuthActions
 
 // Mock users for development
 const MOCK_USERS: Record<string, { user: User; password: string }> = {
-  'admin@pharmaflow.com': {
+  'admin@pharmacommute.com': {
     password: 'admin123',
     user: {
       id: '1',
-      email: 'admin@pharmaflow.com',
+      email: 'admin@pharmacommute.com',
       firstName: 'The',
       lastName: 'Gourang',
       role: UserRole.ADMIN,
       tenantId: 'tenant-1',
-      tenantName: 'PharmaFlow Demo',
+      tenantName: 'PharmaCommute',
     },
   },
-  'qa.manager@pharmaflow.com': {
+  'qa.manager@pharmacommute.com': {
     password: 'qa123',
     user: {
       id: '2',
-      email: 'qa.manager@pharmaflow.com',
+      email: 'qa.manager@pharmacommute.com',
       firstName: 'Sarah',
       lastName: 'Johnson',
       role: UserRole.QA_MANAGER,
       tenantId: 'tenant-1',
-      tenantName: 'PharmaFlow Demo',
+      tenantName: 'PharmaCommute',
     },
   },
-  'warehouse@pharmaflow.com': {
+  'warehouse@pharmacommute.com': {
     password: 'warehouse123',
     user: {
       id: '3',
-      email: 'warehouse@pharmaflow.com',
+      email: 'warehouse@pharmacommute.com',
       firstName: 'Mike',
       lastName: 'Wilson',
       role: UserRole.WAREHOUSE_MANAGER,
       tenantId: 'tenant-1',
-      tenantName: 'PharmaFlow Demo',
+      tenantName: 'PharmaCommute',
     },
   },
-  'auditor@pharmaflow.com': {
+  'auditor@pharmacommute.com': {
     password: 'auditor123',
     user: {
       id: '4',
-      email: 'auditor@pharmaflow.com',
+      email: 'auditor@pharmacommute.com',
       firstName: 'Lisa',
       lastName: 'Chen',
       role: UserRole.AUDITOR,
       tenantId: 'tenant-1',
-      tenantName: 'PharmaFlow Demo',
+      tenantName: 'PharmaCommute',
     },
   },
 }
@@ -135,7 +135,7 @@ export const useAuthStore = create<AuthStore>()(
       },
     }),
     {
-      name: 'pharmaflow-auth',
+      name: 'pharmacommute-auth',
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,

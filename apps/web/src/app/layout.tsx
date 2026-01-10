@@ -6,7 +6,7 @@ import { ThemeProvider } from '@/components/theme-provider'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'PharmaFlow - Inventory & Supply Chain Management',
+  title: 'PharmaCommute - Inventory & Supply Chain Management',
   description: 'Enterprise-grade pharmaceutical inventory management system',
 }
 

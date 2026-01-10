@@ -132,7 +132,7 @@ export const usePreferencesStore = create<PreferencesState>()(
       },
     }),
     {
-      name: 'pharmaflow-preferences',
+      name: 'pharmacommute-preferences',
       onRehydrateStorage: () => (state) => {
         if (state) {
           applyTheme(state.theme)

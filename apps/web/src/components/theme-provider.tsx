@@ -12,7 +12,7 @@ export function ThemeProvider() {
     if (typeof window === 'undefined') return
     
     try {
-      const stored = localStorage.getItem('pharmaflow-preferences')
+      const stored = localStorage.getItem('pharmacommute-preferences')
       const root = document.documentElement
       
       if (stored) {

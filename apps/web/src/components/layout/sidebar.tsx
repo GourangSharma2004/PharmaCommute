@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/auth-store'
@@ -299,15 +300,21 @@ export function Sidebar() {
   return (
     <div className="pharma-sidebar fixed left-0 top-0 w-64 h-screen flex flex-col bg-white dark:bg-[hsl(217.2,32.6%,17.5%)] border-r border-slate-200 dark:border-[hsl(217.2,32.6%,25%)] z-10">
       {/* Header section */}
-      <div className="p-4 pb-0 flex-shrink-0">
-        <div className="mb-8">
-          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">PharmaFlow</h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400">{user.tenantName}</p>
-        </div>
+      <div className="px-4 pt-3 pb-1.5 flex-shrink-0 border-b border-slate-200 dark:border-[hsl(217.2,32.6%,25%)]">
+        <Link href="/dashboard" className="flex items-center py-2">
+          <Image
+            src="/pharma-commute-logo.png"
+            alt="Pharma Commute"
+            width={180}
+            height={80}
+            className="h-auto w-auto max-w-[180px] object-contain"
+            priority
+          />
+        </Link>
       </div>
 
       {/* Scrollable navigation section */}
-      <div className="flex-1 overflow-y-auto px-4 min-h-0">
+      <div className="flex-1 overflow-y-auto px-4 min-h-0 pt-2">
         <nav className="space-y-2 pb-4">
           {visibleNavItems.map(item => renderNavItem(item))}
         </nav>
