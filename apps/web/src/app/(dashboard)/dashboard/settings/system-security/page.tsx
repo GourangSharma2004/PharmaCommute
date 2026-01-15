@@ -9,6 +9,14 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { 
   Shield, 
   Lock, 
@@ -90,6 +98,11 @@ interface SystemSecurityConfig {
       ipRange: string
       trusted: boolean
     }>
+    apiAccessControls: {
+      requireApiAuthentication: boolean
+      rateLimitingEnabled: boolean
+      apiKeyRotationRequired: boolean
+    }
   }
   
   // Data Protection & Encryption
@@ -213,6 +226,11 @@ const DEFAULT_CONFIG: SystemSecurityConfig = {
       allowedCountries: [],
     },
     officeNetworks: [],
+    apiAccessControls: {
+      requireApiAuthentication: true,
+      rateLimitingEnabled: true,
+      apiKeyRotationRequired: false,
+    },
   },
   dataProtection: {
     encryptionAtRest: {
@@ -287,7 +305,7 @@ export default function SystemSecurityPage() {
   // If not admin, show access denied
   if (!isAdmin) {
     return (
-      <div className="max-w-4xl mx-auto">
+      <div>
         <Card className="border-red-200 dark:border-red-800">
           <CardContent className="pt-6">
             <div className="text-center py-12">
@@ -356,13 +374,13 @@ export default function SystemSecurityPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-8">
+    <div className="space-y-6 pb-8">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">System & Security</h1>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Enterprise Security & Compliance</h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
-            Configure organization-wide security policies, encryption, and compliance controls
+            Single source of truth for organization-wide security policies, encryption, and compliance controls
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -377,16 +395,33 @@ export default function SystemSecurityPage() {
         </div>
       </div>
 
+      {/* Authoritative Source Banner */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">
+              Single Source of Truth for Security Policies
+            </p>
+            <p className="text-xs text-blue-700 dark:text-blue-300">
+              This page is the <strong>authoritative control plane</strong> for all organization-wide security policies. 
+              All security enforcement rules defined here are read by backend guards and middleware. 
+              User Security Controls page can only <em>consume</em> these policies, never define them.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Warning Banner */}
       <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
         <div className="flex items-start gap-3">
           <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
           <div className="space-y-1">
             <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
-              System-Wide Configuration
+              Backend Enforcement Guaranteed
             </p>
             <p className="text-xs text-amber-700 dark:text-amber-300">
-              Changes to these settings affect all users and are automatically audit logged. 
+              All changes are audit logged and require approval. Policies are enforced at the API layer. 
               Misconfiguration may impact system access or compliance status.
             </p>
           </div>
@@ -445,7 +480,7 @@ export default function SystemSecurityPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="flex items-center gap-2">
                 <Switch
                   checked={config.securityPolicies.passwordPolicy.requireUppercase}
@@ -487,7 +522,7 @@ export default function SystemSecurityPage() {
           {/* MFA Enforcement */}
           <div className="space-y-3 p-4 border dark:border-slate-700 rounded-lg">
             <div className="flex items-center justify-between">
-              <Label className="text-base font-semibold dark:text-slate-200">Multi-Factor Authentication</Label>
+              <Label className="text-base font-semibold dark:text-slate-200">Multi-Factor Authentication Enforcement</Label>
               <Badge variant="outline" className="text-xs text-amber-700 dark:text-amber-400">
                 Affects all users
               </Badge>
@@ -505,16 +540,35 @@ export default function SystemSecurityPage() {
               </div>
             </div>
             {config.securityPolicies.mfaEnforcement.enforceForAll && (
-              <div className="pl-8">
-                <Label className="text-sm">Grace Period (days)</Label>
-                <Input
-                  type="number"
-                  value={config.securityPolicies.mfaEnforcement.gracePeriodDays}
-                  onChange={(e) => updateConfig('securityPolicies.mfaEnforcement.gracePeriodDays', parseInt(e.target.value) || 30)}
-                  min="1"
-                  max="90"
-                  className="w-32 mt-1"
-                />
+              <div className="pl-8 space-y-3">
+                <div>
+                  <Label className="text-sm">Grace Period (days)</Label>
+                  <Input
+                    type="number"
+                    value={config.securityPolicies.mfaEnforcement.gracePeriodDays}
+                    onChange={(e) => updateConfig('securityPolicies.mfaEnforcement.gracePeriodDays', parseInt(e.target.value) || 30)}
+                    min="1"
+                    max="90"
+                    className="w-32 mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm">Allowed MFA Methods</Label>
+                  <div className="mt-2 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <input type="checkbox" id="mfaAuthApp" defaultChecked disabled={!isAdmin} />
+                      <Label htmlFor="mfaAuthApp" className="text-sm font-normal">Authenticator App (TOTP)</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input type="checkbox" id="mfaEmail" defaultChecked disabled={!isAdmin} />
+                      <Label htmlFor="mfaEmail" className="text-sm font-normal">Email OTP</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input type="checkbox" id="mfaSMS" disabled={!isAdmin} />
+                      <Label htmlFor="mfaSMS" className="text-sm font-normal">SMS OTP (Future)</Label>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -605,7 +659,7 @@ export default function SystemSecurityPage() {
           {/* OAuth Providers */}
           <div className="space-y-4">
             <Label className="text-base font-semibold dark:text-slate-200">OAuth / SSO Providers</Label>
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
                 { key: 'azureAd', name: 'Azure Active Directory', icon: '🔷' },
                 { key: 'okta', name: 'Okta', icon: '🔶' },
@@ -614,29 +668,31 @@ export default function SystemSecurityPage() {
                 const providerConfig = config.authentication.oauthProviders[provider.key as keyof typeof config.authentication.oauthProviders]
                 return (
                   <div key={provider.key} className="p-4 border dark:border-slate-700 rounded-lg">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col space-y-3">
                       <div className="flex items-center gap-3">
                         <span className="text-2xl">{provider.icon}</span>
-                        <div>
+                        <div className="flex-1">
                           <Label className="text-sm font-medium">{provider.name}</Label>
                           <Badge variant={providerConfig.configured ? 'default' : 'outline'} className="ml-2 text-xs">
                             {providerConfig.configured ? 'Configured' : 'Not Configured'}
                           </Badge>
                         </div>
                       </div>
-                      <Switch
-                        checked={providerConfig.enabled}
-                        onCheckedChange={(checked) => {
-                          updateConfig(`authentication.oauthProviders.${provider.key}.enabled`, checked)
-                        }}
-                        disabled={!providerConfig.configured}
-                      />
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs text-slate-600 dark:text-slate-400">Enable</Label>
+                        <Switch
+                          checked={providerConfig.enabled}
+                          onCheckedChange={(checked) => {
+                            updateConfig(`authentication.oauthProviders.${provider.key}.enabled`, checked)
+                          }}
+                        />
+                      </div>
+                      {!providerConfig.configured && (
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          Configure in Settings → Integrations
+                        </p>
+                      )}
                     </div>
-                    {!providerConfig.configured && (
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 ml-11">
-                        Configure in Settings → Integrations
-                      </p>
-                    )}
                   </div>
                 )
               })}
@@ -754,27 +810,109 @@ export default function SystemSecurityPage() {
             </p>
           </div>
 
-          {/* VPN Only Access */}
+          {/* VPN Only Access & Geographic Restrictions - Side by Side */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* VPN Only Access */}
+            <div className="space-y-3 p-4 border dark:border-slate-700 rounded-lg">
+              <div className="flex items-center gap-4">
+                <Switch
+                  checked={config.networkControls.vpnOnlyAccess}
+                  onCheckedChange={(checked) => updateConfig('networkControls.vpnOnlyAccess', checked)}
+                />
+                <div className="flex-1">
+                  <Label className="text-sm font-semibold dark:text-slate-200 cursor-pointer">VPN-Only Access</Label>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Require VPN connection for all system access
+                  </p>
+                </div>
+              </div>
+              {config.networkControls.vpnOnlyAccess && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded p-3">
+                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                    ⚠️ All users must connect via VPN. Ensure VPN infrastructure is properly configured.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Geo Restrictions */}
+            <div className="space-y-3 p-4 border dark:border-slate-700 rounded-lg">
+              <div className="flex items-center gap-4">
+                <Switch
+                  checked={config.networkControls.geoRestriction.enabled}
+                  onCheckedChange={(checked) => updateConfig('networkControls.geoRestriction.enabled', checked)}
+                />
+                <div className="flex-1">
+                  <Label className="text-sm font-semibold dark:text-slate-200 cursor-pointer">Geographic Restrictions</Label>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Limit system access to specific countries
+                  </p>
+                </div>
+              </div>
+              {config.networkControls.geoRestriction.enabled && (
+                <div className="pl-8 space-y-2">
+                  <Label className="text-sm">Allowed Countries</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {['India', 'United States', 'United Kingdom', 'Germany'].map((country) => (
+                      <Badge key={country} variant="outline" className="cursor-pointer">
+                        {country}
+                      </Badge>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Access attempts from other countries will be blocked
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* API Access Controls */}
           <div className="space-y-3 p-4 border dark:border-slate-700 rounded-lg">
-            <div className="flex items-center gap-4">
-              <Switch
-                checked={config.networkControls.vpnOnlyAccess}
-                onCheckedChange={(checked) => updateConfig('networkControls.vpnOnlyAccess', checked)}
-              />
-              <div className="flex-1">
-                <Label className="text-sm font-semibold dark:text-slate-200 cursor-pointer">VPN-Only Access</Label>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Require VPN connection for all system access
+            <Label className="text-base font-semibold dark:text-slate-200">API Access Controls</Label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex flex-col space-y-2 p-3 border dark:border-slate-700 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={config.networkControls.apiAccessControls.requireApiAuthentication}
+                    onCheckedChange={(checked) => updateConfig('networkControls.apiAccessControls.requireApiAuthentication', checked)}
+                    disabled={!isAdmin}
+                  />
+                  <Label className="text-sm font-normal cursor-pointer">Require API authentication</Label>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  All API requests must include valid authentication tokens
+                </p>
+              </div>
+              
+              <div className="flex flex-col space-y-2 p-3 border dark:border-slate-700 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={config.networkControls.apiAccessControls.rateLimitingEnabled}
+                    onCheckedChange={(checked) => updateConfig('networkControls.apiAccessControls.rateLimitingEnabled', checked)}
+                    disabled={!isAdmin}
+                  />
+                  <Label className="text-sm font-normal cursor-pointer">Rate limiting enabled</Label>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Prevent API abuse with request rate limits
+                </p>
+              </div>
+              
+              <div className="flex flex-col space-y-2 p-3 border dark:border-slate-700 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={config.networkControls.apiAccessControls.apiKeyRotationRequired}
+                    onCheckedChange={(checked) => updateConfig('networkControls.apiAccessControls.apiKeyRotationRequired', checked)}
+                    disabled={!isAdmin}
+                  />
+                  <Label className="text-sm font-normal cursor-pointer">API key rotation required</Label>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Enforce periodic API key renewal (90 days)
                 </p>
               </div>
             </div>
-            {config.networkControls.vpnOnlyAccess && (
-              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded p-3">
-                <p className="text-xs text-amber-700 dark:text-amber-300">
-                  ⚠️ All users must connect via VPN. Ensure VPN infrastructure is properly configured.
-                </p>
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>
@@ -854,49 +992,117 @@ export default function SystemSecurityPage() {
             </div>
           </div>
 
-          {/* Backup Encryption */}
-          <div className="space-y-3 p-4 border dark:border-slate-700 rounded-lg">
-            <div className="flex items-center gap-4">
-              <Switch
-                checked={config.dataProtection.backupEncryption.enabled}
-                onCheckedChange={(checked) => updateConfig('dataProtection.backupEncryption.enabled', checked)}
-              />
-              <div className="flex-1">
-                <Label className="text-sm font-semibold dark:text-slate-200 cursor-pointer">Backup Encryption</Label>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  All backups are encrypted using {config.dataProtection.backupEncryption.algorithm}
-                </p>
+          {/* Backup Encryption & Signed URL Access - Side by Side */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Backup Encryption */}
+            <div className="space-y-3 p-4 border dark:border-slate-700 rounded-lg">
+              <div className="flex items-center gap-4">
+                <Switch
+                  checked={config.dataProtection.backupEncryption.enabled}
+                  onCheckedChange={(checked) => updateConfig('dataProtection.backupEncryption.enabled', checked)}
+                />
+                <div className="flex-1">
+                  <Label className="text-sm font-semibold dark:text-slate-200 cursor-pointer">Backup Encryption</Label>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    All backups are encrypted using {config.dataProtection.backupEncryption.algorithm}
+                  </p>
+                </div>
               </div>
+            </div>
+
+            {/* Secure File Access */}
+            <div className="space-y-3 p-4 border dark:border-slate-700 rounded-lg">
+              <div className="flex items-center gap-4">
+                <Switch
+                  checked={config.dataProtection.secureFileAccess.signedUrlsEnabled}
+                  onCheckedChange={(checked) => updateConfig('dataProtection.secureFileAccess.signedUrlsEnabled', checked)}
+                />
+                <div className="flex-1">
+                  <Label className="text-sm font-semibold dark:text-slate-200 cursor-pointer">Signed URL Access</Label>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Files are accessed via time-limited signed URLs
+                  </p>
+                </div>
+              </div>
+              {config.dataProtection.secureFileAccess.signedUrlsEnabled && (
+                <div className="pl-8">
+                  <Label className="text-sm">URL Expiry (minutes)</Label>
+                  <Input
+                    type="number"
+                    value={config.dataProtection.secureFileAccess.urlExpiryMinutes}
+                    onChange={(e) => updateConfig('dataProtection.secureFileAccess.urlExpiryMinutes', parseInt(e.target.value) || 60)}
+                    min="5"
+                    max="1440"
+                    className="w-32 mt-1"
+                  />
+                </div>
+              )}
             </div>
           </div>
-
-          {/* Secure File Access */}
+          {/* Security Incident Types & Response */}
           <div className="space-y-3 p-4 border dark:border-slate-700 rounded-lg">
-            <div className="flex items-center gap-4">
-              <Switch
-                checked={config.dataProtection.secureFileAccess.signedUrlsEnabled}
-                onCheckedChange={(checked) => updateConfig('dataProtection.secureFileAccess.signedUrlsEnabled', checked)}
-              />
-              <div className="flex-1">
-                <Label className="text-sm font-semibold dark:text-slate-200 cursor-pointer">Signed URL Access</Label>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Files are accessed via time-limited signed URLs
-                </p>
+            <Label className="text-base font-semibold dark:text-slate-200">Security Incident Types & Response Workflows</Label>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Incident Type</TableHead>
+                  <TableHead>Severity</TableHead>
+                  <TableHead>Auto Response</TableHead>
+                  <TableHead>Notification</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow>
+                  <TableCell className="font-medium">Brute Force Attack</TableCell>
+                  <TableCell><Badge variant="destructive">Critical</Badge></TableCell>
+                  <TableCell>Auto-block IP, Lock account</TableCell>
+                  <TableCell>Immediate escalation</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Unauthorized Access Attempt</TableCell>
+                  <TableCell><Badge variant="default">High</Badge></TableCell>
+                  <TableCell>Log event, Alert admin</TableCell>
+                  <TableCell>Email notification</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Suspicious Login Location</TableCell>
+                  <TableCell><Badge variant="default">Medium</Badge></TableCell>
+                  <TableCell>Require MFA verification</TableCell>
+                  <TableCell>In-app alert</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Data Export Anomaly</TableCell>
+                  <TableCell><Badge variant="destructive">Critical</Badge></TableCell>
+                  <TableCell>Block export, Freeze account</TableCell>
+                  <TableCell>Immediate escalation</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Breach Notification Rules */}
+          <div className="space-y-3 p-4 border-2 border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/10">
+            <Label className="text-base font-semibold text-red-900 dark:text-red-200">Breach Notification Rules</Label>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-red-600" />
+                <Label className="text-sm font-normal text-red-900 dark:text-red-200">
+                  Notify affected users within 72 hours (GDPR/HIPAA compliant)
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-red-600" />
+                <Label className="text-sm font-normal text-red-900 dark:text-red-200">
+                  Escalate to regulatory authorities if applicable
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-red-600" />
+                <Label className="text-sm font-normal text-red-900 dark:text-red-200">
+                  Document incident in audit trail with required fields
+                </Label>
               </div>
             </div>
-            {config.dataProtection.secureFileAccess.signedUrlsEnabled && (
-              <div className="pl-8">
-                <Label className="text-sm">URL Expiry (minutes)</Label>
-                <Input
-                  type="number"
-                  value={config.dataProtection.secureFileAccess.urlExpiryMinutes}
-                  onChange={(e) => updateConfig('dataProtection.secureFileAccess.urlExpiryMinutes', parseInt(e.target.value) || 60)}
-                  min="5"
-                  max="1440"
-                  className="w-32 mt-1"
-                />
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>
@@ -933,21 +1139,23 @@ export default function SystemSecurityPage() {
               <Label className="text-sm font-normal cursor-pointer">Enable comprehensive audit logging</Label>
             </div>
             {config.auditControl.auditLogging.enabled && (
-              <div className="pl-8 space-y-2">
+              <div className="pl-8 space-y-3">
                 <Label className="text-sm">Logging Categories</Label>
-                {Object.entries(config.auditControl.auditLogging.categories).map(([category, enabled]) => (
-                  <div key={category} className="flex items-center gap-2">
-                    <Switch
-                      checked={enabled}
-                      onCheckedChange={(checked) => 
-                        updateConfig(`auditControl.auditLogging.categories.${category}`, checked)
-                      }
-                    />
-                    <Label className="text-sm font-normal cursor-pointer capitalize">
-                      {category.replace(/([A-Z])/g, ' $1').trim()}
-                    </Label>
-                  </div>
-                ))}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {Object.entries(config.auditControl.auditLogging.categories).map(([category, enabled]) => (
+                    <div key={category} className="flex items-center gap-2">
+                      <Switch
+                        checked={enabled}
+                        onCheckedChange={(checked) => 
+                          updateConfig(`auditControl.auditLogging.categories.${category}`, checked)
+                        }
+                      />
+                      <Label className="text-sm font-normal cursor-pointer capitalize">
+                        {category.replace(/([A-Z])/g, ' $1').trim()}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -974,7 +1182,7 @@ export default function SystemSecurityPage() {
           {/* Approval Requirements */}
           <div className="space-y-3 p-4 border dark:border-slate-700 rounded-lg">
             <Label className="text-base font-semibold dark:text-slate-200">Mandatory Approval for Changes</Label>
-            <div className="space-y-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="flex items-center gap-2">
                 <Switch
                   checked={config.auditControl.requireApprovalFor.securityChanges}
@@ -1165,6 +1373,89 @@ export default function SystemSecurityPage() {
         </CardContent>
       </Card>
 
+      {/* SECTION 6: COMPLIANCE POSTURE (Read-only) */}
+      <Card className="border-2 border-green-200 dark:border-green-800">
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+              <Shield className="h-5 w-5 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <CardTitle className="text-xl dark:text-slate-100">Compliance Posture (Read-Only)</CardTitle>
+              <CardDescription className="mt-1">
+                Regulatory framework alignment and data integrity principles
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* GxP Alignment & 21 CFR Part 11 Readiness - Side by Side */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* GxP Alignment */}
+            <div className="space-y-3 p-4 border-2 border-green-200 dark:border-green-700 rounded-lg bg-green-50 dark:bg-green-950/20">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                <Label className="text-base font-semibold text-green-900 dark:text-green-200">GDP / GxP Aligned Controls</Label>
+              </div>
+              <ul className="text-xs text-green-700 dark:text-green-300 space-y-1 ml-7">
+                <li>✓ Role-based access control with segregation of duties</li>
+                <li>✓ Complete audit trail for all system actions</li>
+                <li>✓ Temperature monitoring and excursion management</li>
+                <li>✓ Batch traceability and FEFO enforcement</li>
+                <li>✓ Electronic approval workflows</li>
+              </ul>
+            </div>
+
+            {/* 21 CFR Part 11 Readiness */}
+            <div className="space-y-3 p-4 border-2 border-blue-200 dark:border-blue-700 rounded-lg bg-blue-50 dark:bg-blue-950/20">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <Label className="text-base font-semibold text-blue-900 dark:text-blue-200">21 CFR Part 11 Readiness</Label>
+              </div>
+              <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1 ml-7">
+                <li>✓ Unique user identification and authentication</li>
+                <li>✓ Authority checks for system access</li>
+                <li>✓ Operational system checks (time sync, audit logging)</li>
+                <li>✓ Device and activity logging</li>
+                <li>✓ Education and training records linkage (future)</li>
+                <li>⚠ Electronic signatures (requires additional module)</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Data Integrity Principles */}
+          <div className="space-y-3 p-4 border dark:border-slate-700 rounded-lg">
+            <Label className="text-base font-semibold dark:text-slate-200">Data Integrity Principles (ALCOA+)</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <span className="text-xs">Attributable - User attribution on all actions</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <span className="text-xs">Legible - Clear audit trails</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <span className="text-xs">Contemporaneous - Real-time logging</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <span className="text-xs">Original - Immutable records</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <span className="text-xs">Accurate - Validated data entry</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <span className="text-xs">Complete - Full context captured</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* SECTION 7: PLATFORM & COMPLIANCE INFORMATION (Read-only) */}
       <Card className="border-2 dark:border-slate-700">
         <CardHeader className="pb-4">
@@ -1173,7 +1464,7 @@ export default function SystemSecurityPage() {
               <Globe className="h-5 w-5 text-slate-600 dark:text-slate-400" />
             </div>
             <div>
-              <CardTitle className="text-xl dark:text-slate-100">Platform & Compliance Information</CardTitle>
+              <CardTitle className="text-xl dark:text-slate-100">Platform & Deployment Information</CardTitle>
               <CardDescription className="mt-1">
                 System information for auditors and enterprise customers (Read-only)
               </CardDescription>

@@ -38,6 +38,22 @@ import {
 } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { useAuthStore } from '@/store/auth-store'
 import { UserRole } from '@/types/auth'
 
@@ -298,6 +314,16 @@ const integrationGovernance: IntegrationGovernance = {
 
 export default function IntegrationsPage() {
   const { user } = useAuthStore()
+
+  // State for Integration Governance switches
+  const [governanceSettings, setGovernanceSettings] = useState({
+    approvalRequiredForNewIntegration: true,
+    approvalRequiredForDataScopeChanges: true,
+    approvalRequiredForDirectionChanges: true,
+  })
+
+  // State for audit logs modal
+  const [isAuditLogsModalOpen, setIsAuditLogsModalOpen] = useState(false)
 
   // Check if user has access (Admin / IT / Compliance)
   if (!user) {
@@ -936,22 +962,37 @@ export default function IntegrationsPage() {
               <div className="space-y-2">
                 <Label className="text-sm">Approval Required for New Integration</Label>
                 <div className="flex items-center space-x-2">
-                  <Switch defaultChecked={true} />
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Required</span>
+                  <Switch
+                    checked={governanceSettings.approvalRequiredForNewIntegration}
+                    onCheckedChange={(checked) => setGovernanceSettings(prev => ({ ...prev, approvalRequiredForNewIntegration: checked }))}
+                  />
+                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                    {governanceSettings.approvalRequiredForNewIntegration ? 'Required' : 'Not Required'}
+                  </span>
                 </div>
               </div>
               <div className="space-y-2">
                 <Label className="text-sm">Approval Required for Data Scope Changes</Label>
                 <div className="flex items-center space-x-2">
-                  <Switch defaultChecked={true} />
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Required</span>
+                  <Switch
+                    checked={governanceSettings.approvalRequiredForDataScopeChanges}
+                    onCheckedChange={(checked) => setGovernanceSettings(prev => ({ ...prev, approvalRequiredForDataScopeChanges: checked }))}
+                  />
+                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                    {governanceSettings.approvalRequiredForDataScopeChanges ? 'Required' : 'Not Required'}
+                  </span>
                 </div>
               </div>
               <div className="space-y-2">
                 <Label className="text-sm">Approval Required for Direction Changes</Label>
                 <div className="flex items-center space-x-2">
-                  <Switch defaultChecked={true} />
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Required</span>
+                  <Switch
+                    checked={governanceSettings.approvalRequiredForDirectionChanges}
+                    onCheckedChange={(checked) => setGovernanceSettings(prev => ({ ...prev, approvalRequiredForDirectionChanges: checked }))}
+                  />
+                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                    {governanceSettings.approvalRequiredForDirectionChanges ? 'Required' : 'Not Required'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -1006,7 +1047,11 @@ export default function IntegrationsPage() {
               </div>
               <div>
                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Audit Logs</div>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setIsAuditLogsModalOpen(true)}
+                >
                   <FileText className="h-4 w-4 mr-2" />
                   View Audit Logs
                 </Button>
@@ -1027,50 +1072,155 @@ export default function IntegrationsPage() {
             </div>
           )}
 
-          {/* Governance Compliance Banner */}
-          <div className="bg-slate-50 dark:bg-[hsl(217.2,32.6%,20%)] border-2 border-slate-300 dark:border-slate-700 rounded-lg p-4">
-            <div className="flex items-start space-x-3">
-              <Shield className="h-5 w-5 text-slate-600 dark:text-slate-400 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                  Integration Governance Rules
-                </h4>
-                <ul className="text-xs text-slate-700 dark:text-slate-300 space-y-1 list-disc list-inside">
-                  <li>All integration configuration changes must be audit logged</li>
-                  <li>Governance actions may require approval (configurable)</li>
-                  <li>Emergency disable must always be available to Admin</li>
-                  <li>All integration activity is traceable and reviewable</li>
-                  <li>No integration can bypass system security or compliance controls</li>
-                </ul>
-              </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
 
-      {/* Global Integration Compliance Banner */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="bg-slate-50 dark:bg-[hsl(217.2,32.6%,20%)] border-2 border-slate-300 dark:border-slate-700 rounded-lg p-4">
-            <div className="flex items-start space-x-3">
-              <Shield className="h-5 w-5 text-slate-600 dark:text-slate-400 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                  Global Integration Compliance Rules
-                </h4>
-                <ul className="text-xs text-slate-700 dark:text-slate-300 space-y-1 list-disc list-inside">
-                  <li>No integration can bypass approval workflows, inventory rules, or quality & safety gates</li>
-                  <li>All integration activity must be audit logged and traceable</li>
-                  <li>Inventory execution remains in this system - external systems cannot auto-release or auto-adjust</li>
-                  <li>External quality systems may provide data but cannot auto-release batches</li>
-                  <li>Sensor data may trigger alerts but requires human approval for state changes</li>
-                  <li>All errors must be visible and not silently retried</li>
-                </ul>
+      {/* Integration Governance Rules & Global Integration Compliance Rules */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Integration Governance Rules */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="bg-slate-50 dark:bg-[hsl(217.2,32.6%,20%)] border-2 border-slate-300 dark:border-slate-700 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <Shield className="h-5 w-5 text-slate-600 dark:text-slate-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">
+                    Integration Governance Rules
+                  </h4>
+                  <ul className="text-xs text-slate-700 dark:text-slate-300 space-y-1 list-disc list-inside">
+                    <li>All integration configuration changes must be audit logged</li>
+                    <li>Governance actions may require approval (configurable)</li>
+                    <li>Emergency disable must always be available to Admin</li>
+                    <li>All integration activity is traceable and reviewable</li>
+                    <li>No integration can bypass system security or compliance controls</li>
+                  </ul>
+                </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Global Integration Compliance Rules */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="bg-slate-50 dark:bg-[hsl(217.2,32.6%,20%)] border-2 border-slate-300 dark:border-slate-700 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <Shield className="h-5 w-5 text-slate-600 dark:text-slate-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">
+                    Global Integration Compliance Rules
+                  </h4>
+                  <ul className="text-xs text-slate-700 dark:text-slate-300 space-y-1 list-disc list-inside">
+                    <li>No integration can bypass approval workflows, inventory rules, or quality & safety gates</li>
+                    <li>All integration activity must be audit logged and traceable</li>
+                    <li>Inventory execution remains in this system - external systems cannot auto-release or auto-adjust</li>
+                    <li>External quality systems may provide data but cannot auto-release batches</li>
+                    <li>Sensor data may trigger alerts but requires human approval for state changes</li>
+                    <li>All errors must be visible and not silently retried</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Audit Logs Dialog */}
+      <Dialog open={isAuditLogsModalOpen} onOpenChange={setIsAuditLogsModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Integration Configuration Audit Logs</DialogTitle>
+            <DialogDescription>
+              Complete audit trail of all integration configuration changes
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Timestamp</TableHead>
+                  <TableHead>User</TableHead>
+                  <TableHead>Action</TableHead>
+                  <TableHead>Integration</TableHead>
+                  <TableHead>Details</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow>
+                  <TableCell className="font-mono text-xs">2024-01-15 10:30:00</TableCell>
+                  <TableCell>The Gourang (Admin)</TableCell>
+                  <TableCell>Configuration Change</TableCell>
+                  <TableCell>SAP ERP</TableCell>
+                  <TableCell>Sync frequency changed from real-time to scheduled</TableCell>
+                  <TableCell>
+                    <Badge variant="default">Success</Badge>
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-mono text-xs">2024-01-14 14:22:15</TableCell>
+                  <TableCell>John Doe (Admin)</TableCell>
+                  <TableCell>Integration Enabled</TableCell>
+                  <TableCell>Power BI</TableCell>
+                  <TableCell>Analytics integration enabled with read-only access</TableCell>
+                  <TableCell>
+                    <Badge variant="default">Success</Badge>
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-mono text-xs">2024-01-13 09:15:30</TableCell>
+                  <TableCell>Jane Smith (QA Manager)</TableCell>
+                  <TableCell>Data Scope Updated</TableCell>
+                  <TableCell>LIMS</TableCell>
+                  <TableCell>Added COA documents to data scope</TableCell>
+                  <TableCell>
+                    <Badge variant="default">Success</Badge>
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-mono text-xs">2024-01-12 16:45:00</TableCell>
+                  <TableCell>The Gourang (Admin)</TableCell>
+                  <TableCell>Integration Disabled</TableCell>
+                  <TableCell>Tally ERP</TableCell>
+                  <TableCell>Integration disabled due to connection errors</TableCell>
+                  <TableCell>
+                    <Badge variant="destructive">Error</Badge>
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-mono text-xs">2024-01-11 11:20:45</TableCell>
+                  <TableCell>Mike Johnson (Admin)</TableCell>
+                  <TableCell>Direction Changed</TableCell>
+                  <TableCell>QMS</TableCell>
+                  <TableCell>Changed from inbound to bidirectional</TableCell>
+                  <TableCell>
+                    <Badge variant="default">Success</Badge>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+            
+            <div className="text-xs text-slate-500 dark:text-slate-400 pt-2 border-t">
+              <Info className="h-3 w-3 inline mr-1" />
+              All integration configuration changes are automatically audit logged for compliance and traceability.
+            </div>
           </div>
-        </CardContent>
-      </Card>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAuditLogsModalOpen(false)}>
+              Close
+            </Button>
+            <Button onClick={() => {
+              // TODO: Export audit logs functionality
+              console.log('Export audit logs')
+            }}>
+              <FileText className="h-4 w-4 mr-2" />
+              Export Logs
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

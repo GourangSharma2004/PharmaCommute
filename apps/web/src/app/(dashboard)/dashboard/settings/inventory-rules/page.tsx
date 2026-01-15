@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { 
   Package2, 
   Save, 
@@ -24,13 +25,22 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  FileText
+  FileText,
+  Thermometer
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth-store'
 import { UserRole } from '@/types/auth'
 
 // Inventory rules configuration state
 interface InventoryRulesConfig {
+  // Cold Chain Event Consequences
+  coldChain: {
+    autoQuarantineOnCriticalExcursion: boolean
+    blockDispatchDuringActiveExcursion: boolean
+    freezeMovementUntilQAReview: boolean
+    requireQAApprovalForBatchRelease: boolean
+  }
+
   // Batch & Expiry Handling Rules
   batchExpiry: {
     fefoEnforcement: boolean // Non-disableable
@@ -125,6 +135,12 @@ interface InventoryRulesConfig {
 }
 
 const DEFAULT_CONFIG: InventoryRulesConfig = {
+  coldChain: {
+    autoQuarantineOnCriticalExcursion: true,
+    blockDispatchDuringActiveExcursion: true,
+    freezeMovementUntilQAReview: true,
+    requireQAApprovalForBatchRelease: true,
+  },
   batchExpiry: {
     fefoEnforcement: true, // Always enabled
     nearExpiryThreshold: 30, // days
@@ -223,7 +239,7 @@ export default function InventoryRulesPage() {
   // If not authorized, show access denied
   if (!hasAccess) {
     return (
-      <div className="max-w-4xl mx-auto">
+      <div>
         <Card className="border-red-200 dark:border-red-800">
           <CardContent className="pt-6">
             <div className="text-center py-12">
@@ -274,13 +290,13 @@ export default function InventoryRulesPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-8">
+    <div className="space-y-6 pb-8">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Inventory Rules & Policies</h1>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Inventory Control Rules</h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
-            Governance rules that protect compliance, traceability, and audit integrity across all inventory operations
+            Block, restrict, and release - stock behavior rules and consequences
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -292,6 +308,21 @@ export default function InventoryRulesPage() {
             <Save className="h-4 w-4 mr-2" />
             Save Changes
           </Button>
+        </div>
+      </div>
+
+      {/* Pipeline Clarity Banner */}
+      <div className="bg-purple-50 dark:bg-purple-900/20 border-2 border-purple-200 dark:border-purple-800 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <ArrowRightLeft className="h-5 w-5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-purple-900 dark:text-purple-200">
+              Stock Behavior & Control Rules
+            </p>
+            <p className="text-xs text-purple-700 dark:text-purple-300">
+              This page defines <strong>stock behavior after events</strong> detected by Cold Chain monitoring. When temperature excursions are classified, these rules determine quarantine, movement restrictions, and release eligibility. For sensor configuration and temperature thresholds, visit <strong>Cold Chain Configuration</strong>.
+            </p>
+          </div>
         </div>
       </div>
 
@@ -311,6 +342,97 @@ export default function InventoryRulesPage() {
           </div>
         </div>
       </div>
+
+      {/* NEW SECTION: COLD CHAIN EVENT CONSEQUENCES */}
+      <Card className="border-2 border-cyan-200 dark:border-cyan-800">
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
+              <Thermometer className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+            </div>
+            <div>
+              <CardTitle className="text-xl dark:text-slate-100">Cold Chain Event Consequences</CardTitle>
+              <CardDescription className="mt-1">
+                Stock actions triggered when temperature excursions are detected and classified
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-4 p-4 border-2 border-cyan-200 dark:border-cyan-800 rounded-lg bg-cyan-50 dark:bg-cyan-900/10">
+            <div className="flex items-center gap-4">
+              <Switch
+                checked={config.coldChain.autoQuarantineOnCriticalExcursion}
+                onCheckedChange={(checked) => updateConfig('coldChain.autoQuarantineOnCriticalExcursion', checked)}
+                disabled={!isAdmin}
+              />
+              <div className="flex-1">
+                <Label className="text-sm font-semibold text-cyan-900 dark:text-cyan-200 cursor-pointer">
+                  Auto-quarantine batches on critical excursion
+                </Label>
+                <p className="text-xs text-cyan-700 dark:text-cyan-300 mt-1">
+                  Automatically move affected batches to quarantine when critical temperature excursion is detected
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <Switch
+                checked={config.coldChain.blockDispatchDuringActiveExcursion}
+                onCheckedChange={(checked) => updateConfig('coldChain.blockDispatchDuringActiveExcursion', checked)}
+                disabled={!isAdmin}
+              />
+              <div className="flex-1">
+                <Label className="text-sm font-semibold text-cyan-900 dark:text-cyan-200 cursor-pointer">
+                  Block dispatch during active excursion
+                </Label>
+                <p className="text-xs text-cyan-700 dark:text-cyan-300 mt-1">
+                  Prevent dispatch of affected batches until excursion is investigated and closed
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <Switch
+                checked={config.coldChain.freezeMovementUntilQAReview}
+                onCheckedChange={(checked) => updateConfig('coldChain.freezeMovementUntilQAReview', checked)}
+                disabled={!isAdmin}
+              />
+              <div className="flex-1">
+                <Label className="text-sm font-semibold text-cyan-900 dark:text-cyan-200 cursor-pointer">
+                  Freeze inventory movement until QA review
+                </Label>
+                <p className="text-xs text-cyan-700 dark:text-cyan-300 mt-1">
+                  Lock all movements of affected batches pending QA impact assessment
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <Switch
+                checked={config.coldChain.requireQAApprovalForBatchRelease}
+                onCheckedChange={(checked) => updateConfig('coldChain.requireQAApprovalForBatchRelease', checked)}
+                disabled={!isAdmin}
+              />
+              <div className="flex-1">
+                <Label className="text-sm font-semibold text-cyan-900 dark:text-cyan-200 cursor-pointer">
+                  Require QA approval for batch release
+                </Label>
+                <p className="text-xs text-cyan-700 dark:text-cyan-300 mt-1">
+                  Batches exposed to excursions require QA approval before release from quarantine
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              These rules define <strong>what happens to stock</strong> when Cold Chain Configuration detects and classifies temperature excursions. Temperature thresholds and sensor settings are managed in Cold Chain Configuration.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
 
       {/* SECTION 1: BATCH & EXPIRY HANDLING RULES */}
       <Card className="border-2 dark:border-slate-700">
@@ -664,49 +786,52 @@ export default function InventoryRulesPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Allow Manual Adjustments - Default OFF with Warning */}
-          <div className="space-y-3 p-4 border dark:border-slate-700 rounded-lg">
-            <div className="flex items-center gap-4">
-              <Switch
-                checked={config.movements.allowManualAdjustments}
-                onCheckedChange={(checked) => updateConfig('movements.allowManualAdjustments', checked)}
-              />
-              <div className="flex-1">
-                <Label className="text-sm font-semibold dark:text-slate-200 cursor-pointer">
-                  Allow manual inventory adjustments
-                </Label>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Enable users to manually adjust inventory quantities
-                </p>
-              </div>
-            </div>
-            {config.movements.allowManualAdjustments && (
-              <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded">
-                <div className="flex items-start gap-2">
-                  <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                  <p className="text-xs text-amber-800 dark:text-amber-300">
-                    <strong>Warning:</strong> Manual adjustments increase audit risk. All adjustments are logged and may require 
-                    additional documentation for compliance purposes.
+          {/* Allow Manual Adjustments & Mandatory Reason Codes - Side by Side */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Allow Manual Adjustments - Default OFF with Warning */}
+            <div className="space-y-3 p-4 border dark:border-slate-700 rounded-lg">
+              <div className="flex items-center gap-4">
+                <Switch
+                  checked={config.movements.allowManualAdjustments}
+                  onCheckedChange={(checked) => updateConfig('movements.allowManualAdjustments', checked)}
+                />
+                <div className="flex-1">
+                  <Label className="text-sm font-semibold dark:text-slate-200 cursor-pointer">
+                    Allow manual inventory adjustments
+                  </Label>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Enable users to manually adjust inventory quantities
                   </p>
                 </div>
               </div>
-            )}
-          </div>
+              {config.movements.allowManualAdjustments && (
+                <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-amber-800 dark:text-amber-300">
+                      <strong>Warning:</strong> Manual adjustments increase audit risk. All adjustments are logged and may require 
+                      additional documentation for compliance purposes.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
 
-          {/* Mandatory Reason Codes */}
-          <div className="space-y-3 p-4 border dark:border-slate-700 rounded-lg">
-            <div className="flex items-center gap-4">
-              <Switch
-                checked={config.movements.mandatoryReasonCodes}
-                onCheckedChange={(checked) => updateConfig('movements.mandatoryReasonCodes', checked)}
-              />
-              <div className="flex-1">
-                <Label className="text-sm font-semibold dark:text-slate-200 cursor-pointer">
-                  Mandatory reason codes for adjustments
-                </Label>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  All adjustments must include a reason code for audit trail
-                </p>
+            {/* Mandatory Reason Codes */}
+            <div className="space-y-3 p-4 border dark:border-slate-700 rounded-lg">
+              <div className="flex items-center gap-4">
+                <Switch
+                  checked={config.movements.mandatoryReasonCodes}
+                  onCheckedChange={(checked) => updateConfig('movements.mandatoryReasonCodes', checked)}
+                />
+                <div className="flex-1">
+                  <Label className="text-sm font-semibold dark:text-slate-200 cursor-pointer">
+                    Mandatory reason codes for adjustments
+                  </Label>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    All adjustments must include a reason code for audit trail
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -1034,54 +1159,57 @@ export default function InventoryRulesPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Allowed Return Types */}
-          <div className="space-y-3 p-4 border dark:border-slate-700 rounded-lg">
-            <Label className="text-base font-semibold dark:text-slate-200">Allowed Return Types</Label>
-            <div className="space-y-2">
-              {Object.entries(config.returns.allowedReturnTypes).map(([type, allowed]) => (
-                <div key={type} className="flex items-center gap-2">
+          {/* Allowed Return Types & Auto-Routing - Side by Side */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Allowed Return Types */}
+            <div className="space-y-3 p-4 border dark:border-slate-700 rounded-lg">
+              <Label className="text-base font-semibold dark:text-slate-200">Allowed Return Types</Label>
+              <div className="space-y-2">
+                {Object.entries(config.returns.allowedReturnTypes).map(([type, allowed]) => (
+                  <div key={type} className="flex items-center gap-2">
+                    <Switch
+                      checked={allowed}
+                      onCheckedChange={(checked) => updateConfig(`returns.allowedReturnTypes.${type}`, checked)}
+                    />
+                    <Label className="text-sm font-normal cursor-pointer capitalize">
+                      {type.replace(/([A-Z])/g, ' $1').trim()}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Auto-Routing */}
+            <div className="space-y-3 p-4 border dark:border-slate-700 rounded-lg">
+              <Label className="text-base font-semibold dark:text-slate-200">Auto-Routing of Returned Stock</Label>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
                   <Switch
-                    checked={allowed}
-                    onCheckedChange={(checked) => updateConfig(`returns.allowedReturnTypes.${type}`, checked)}
+                    checked={config.returns.autoRouting.expiredToExpiredLocation}
+                    onCheckedChange={(checked) => updateConfig('returns.autoRouting.expiredToExpiredLocation', checked)}
                   />
-                  <Label className="text-sm font-normal cursor-pointer capitalize">
-                    {type.replace(/([A-Z])/g, ' $1').trim()}
+                  <Label className="text-sm font-normal cursor-pointer">
+                    Route expired returns to expired location
                   </Label>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Auto-Routing */}
-          <div className="space-y-3 p-4 border dark:border-slate-700 rounded-lg">
-            <Label className="text-base font-semibold dark:text-slate-200">Auto-Routing of Returned Stock</Label>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={config.returns.autoRouting.expiredToExpiredLocation}
-                  onCheckedChange={(checked) => updateConfig('returns.autoRouting.expiredToExpiredLocation', checked)}
-                />
-                <Label className="text-sm font-normal cursor-pointer">
-                  Route expired returns to expired location
-                </Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={config.returns.autoRouting.damagedToDamagedLocation}
-                  onCheckedChange={(checked) => updateConfig('returns.autoRouting.damagedToDamagedLocation', checked)}
-                />
-                <Label className="text-sm font-normal cursor-pointer">
-                  Route damaged returns to damaged location
-                </Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={config.returns.autoRouting.nearExpiryToQuarantine}
-                  onCheckedChange={(checked) => updateConfig('returns.autoRouting.nearExpiryToQuarantine', checked)}
-                />
-                <Label className="text-sm font-normal cursor-pointer">
-                  Route near-expiry returns to quarantine
-                </Label>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={config.returns.autoRouting.damagedToDamagedLocation}
+                    onCheckedChange={(checked) => updateConfig('returns.autoRouting.damagedToDamagedLocation', checked)}
+                  />
+                  <Label className="text-sm font-normal cursor-pointer">
+                    Route damaged returns to damaged location
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={config.returns.autoRouting.nearExpiryToQuarantine}
+                    onCheckedChange={(checked) => updateConfig('returns.autoRouting.nearExpiryToQuarantine', checked)}
+                  />
+                  <Label className="text-sm font-normal cursor-pointer">
+                    Route near-expiry returns to quarantine
+                  </Label>
+                </div>
               </div>
             </div>
           </div>
