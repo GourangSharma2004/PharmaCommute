@@ -37,6 +37,7 @@ import {
   Lock,
   Building
 } from 'lucide-react'
+import { UserProfilePopover } from '@/components/user/UserProfilePopover'
 
 interface NavItem {
   title: string
@@ -125,7 +126,7 @@ const navigation: NavItem[] = [
         icon: User,
       },
       {
-        title: 'Security',
+        title: 'User Security Controls',
         href: '/dashboard/settings/security',
         icon: Shield,
       },
@@ -159,7 +160,7 @@ const navigation: NavItem[] = [
         permission: 'system.config',
       },
       {
-        title: 'Inventory Rules',
+        title: 'Inventory Control Rules',
         href: '/dashboard/settings/inventory-rules',
         icon: Package2,
         permission: 'system.config',
@@ -177,7 +178,7 @@ const navigation: NavItem[] = [
         permission: 'system.config',
       },
       {
-        title: 'System & Security',
+        title: 'Enterprise Security & Compliance',
         href: '/dashboard/settings/system-security',
         icon: Lock,
         permission: 'system.config',
@@ -303,12 +304,13 @@ export function Sidebar() {
       <div className="px-4 pt-3 pb-1.5 flex-shrink-0 border-b border-slate-200 dark:border-[hsl(217.2,32.6%,25%)]">
         <Link href="/dashboard" className="flex items-center py-2">
           <Image
-            src="/pharma-commute-logo.png"
+            src="/pharma-commute-logo.png?v=2"
             alt="Pharma Commute"
             width={180}
             height={80}
             className="h-auto w-auto max-w-[180px] object-contain"
             priority
+            unoptimized
           />
         </Link>
       </div>
@@ -322,23 +324,25 @@ export function Sidebar() {
 
       {/* Fixed user info at bottom */}
       <div className="p-4 pt-0 flex-shrink-0 border-t border-slate-200 dark:border-[hsl(217.2,32.6%,25%)]">
-        <div className="bg-white dark:bg-[hsl(217.2,32.6%,17.5%)] border border-slate-200 dark:border-[hsl(217.2,32.6%,25%)] rounded-lg p-3">
-          <div className="flex items-center">
-            <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center">
-              <span className="text-sm font-medium text-blue-900 dark:text-blue-200">
-                {user.firstName[0]}{user.lastName[0]}
-              </span>
+        <UserProfilePopover>
+          <button className="w-full bg-white dark:bg-[hsl(217.2,32.6%,17.5%)] border border-slate-200 dark:border-[hsl(217.2,32.6%,25%)] rounded-lg p-3 hover:bg-slate-50 dark:hover:bg-[hsl(217.2,32.6%,20%)] transition-colors cursor-pointer">
+            <div className="flex items-center">
+              <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center">
+                <span className="text-sm font-medium text-blue-900 dark:text-blue-200">
+                  {user.firstName[0]}{user.lastName[0]}
+                </span>
+              </div>
+              <div className="ml-3 min-w-0 flex-1 text-left">
+                <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                  {user.firstName} {user.lastName}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                  {user.role.replace('_', ' ')}
+                </p>
+              </div>
             </div>
-            <div className="ml-3 min-w-0 flex-1">
-              <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
-                {user.firstName} {user.lastName}
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                {user.role.replace('_', ' ')}
-              </p>
-            </div>
-          </div>
-        </div>
+          </button>
+        </UserProfilePopover>
       </div>
     </div>
   )
