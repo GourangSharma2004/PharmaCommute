@@ -206,17 +206,17 @@ export default function InventoryPage() {
             </div>
             
             <Select
-              value={filters.status || ''}
+              value={filters.status || 'all'}
               onValueChange={(value) => setFilters(prev => ({ 
                 ...prev, 
-                status: value ? value as BatchStatus : undefined 
+                status: value === 'all' ? undefined : value as BatchStatus 
               }))}
             >
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Status</SelectItem>
+                <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value={BatchStatus.AVAILABLE}>Available</SelectItem>
                 <SelectItem value={BatchStatus.QUARANTINE}>Quarantine</SelectItem>
                 <SelectItem value={BatchStatus.BLOCKED}>Blocked</SelectItem>

@@ -8,6 +8,22 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { 
   UserCheck, 
   Lock, 
@@ -233,6 +249,54 @@ export default function UserAccessPage() {
   const [users, setUsers] = useState<User[]>(mockUsers)
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState<UserRole>(UserRole.WAREHOUSE_USER)
+  const [invitationStatus, setInvitationStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle')
+  const [invitationMessage, setInvitationMessage] = useState('')
+  
+  // State for audit log dialog
+  const [isAuditLogDialogOpen, setIsAuditLogDialogOpen] = useState(false)
+  
+  // State for User Lifecycle switches
+  const [userLifecycleSettings, setUserLifecycleSettings] = useState({
+    immediateDeactivation: true,
+    scheduledDeactivation: false,
+  })
+  
+  // State for Access Scope switches
+  const [warehouseAccess, setWarehouseAccess] = useState({
+    'Warehouse A': false,
+    'Warehouse B': false,
+    'Warehouse C': false,
+  })
+  
+  const [moduleAccess, setModuleAccess] = useState({
+    Inventory: false,
+    Quality: false,
+    Recall: false,
+    Reports: false,
+    Procurement: false,
+    Sales: false,
+  })
+  
+  const [actionAccess, setActionAccess] = useState({
+    View: false,
+    Create: false,
+    Approve: false,
+    Override: false,
+  })
+  
+  // State for Optional Restrictions
+  const [optionalRestrictions, setOptionalRestrictions] = useState({
+    timeBasedAccess: false,
+    ipLocationBasedAccess: false,
+  })
+  
+  // State for Privileged Access Configuration
+  const [privilegedAccessConfig, setPrivilegedAccessConfig] = useState({
+    approvalRequiredForRoleEscalation: true,
+    approvalRequiredForEmergencyAccess: true,
+    justInTimeAccess: true,
+    automaticPrivilegeExpiry: true,
+  })
 
   // Check if user has access (Admin / Compliance)
   if (!user) {
@@ -290,10 +354,62 @@ export default function UserAccessPage() {
     }
   }
 
-  const handleInviteUser = () => {
-    // TODO: API call to invite user
-    console.log('Inviting user:', inviteEmail, inviteRole)
-    setInviteEmail('')
+  const handleInviteUser = async () => {
+    // Validate email
+    if (!inviteEmail) {
+      setInvitationStatus('error')
+      setInvitationMessage('Please enter an email address')
+      return
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(inviteEmail)) {
+      setInvitationStatus('error')
+      setInvitationMessage('Please enter a valid email address')
+      return
+    }
+    
+    // Check if user already exists
+    const existingUser = users.find(u => u.email.toLowerCase() === inviteEmail.toLowerCase())
+    if (existingUser) {
+      setInvitationStatus('error')
+      setInvitationMessage('A user with this email already exists')
+      return
+    }
+    
+    // Simulate sending invitation
+    setInvitationStatus('sending')
+    setInvitationMessage('Sending invitation...')
+    
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    
+    // Create new invited user
+    const newUser: User = {
+      id: Date.now().toString(),
+      email: inviteEmail,
+      firstName: inviteEmail.split('@')[0],
+      lastName: '',
+      role: inviteRole,
+      state: 'invited',
+      lastLogin: null,
+      warehouseAccess: [],
+      moduleAccess: [],
+    }
+    
+    // Add to users list
+    setUsers(prev => [...prev, newUser])
+    
+    // Show success message
+    setInvitationStatus('success')
+    setInvitationMessage(`Invitation sent successfully to ${inviteEmail}!`)
+    
+    // Clear form after 3 seconds
+    setTimeout(() => {
+      setInviteEmail('')
+      setInvitationStatus('idle')
+      setInvitationMessage('')
+    }, 3000)
   }
 
   return (
@@ -391,12 +507,23 @@ export default function UserAccessPage() {
                   type="email"
                   placeholder="user@example.com"
                   value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
+                  onChange={(e) => {
+                    setInviteEmail(e.target.value)
+                    if (invitationStatus === 'error') {
+                      setInvitationStatus('idle')
+                      setInvitationMessage('')
+                    }
+                  }}
+                  disabled={invitationStatus === 'sending'}
                 />
               </div>
               <div className="space-y-2">
                 <Label className="text-sm">Initial Role</Label>
-                <Select value={inviteRole} onValueChange={(value) => setInviteRole(value as UserRole)}>
+                <Select 
+                  value={inviteRole} 
+                  onValueChange={(value) => setInviteRole(value as UserRole)}
+                  disabled={invitationStatus === 'sending'}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -410,16 +537,49 @@ export default function UserAccessPage() {
                 </Select>
               </div>
               <div className="flex items-end">
-                <Button onClick={handleInviteUser} className="w-full">
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Send Invitation
+                <Button 
+                  onClick={handleInviteUser} 
+                  className="w-full"
+                  disabled={invitationStatus === 'sending'}
+                >
+                  {invitationStatus === 'sending' ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Send Invitation
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
+            
+            {/* Status Messages */}
+            {invitationStatus === 'success' && (
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md p-3 flex items-start space-x-2">
+                <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-green-800 dark:text-green-200">
+                  {invitationMessage}
+                </p>
+              </div>
+            )}
+            
+            {invitationStatus === 'error' && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-3 flex items-start space-x-2">
+                <XCircle className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-red-800 dark:text-red-200">
+                  {invitationMessage}
+                </p>
+              </div>
+            )}
+            
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-3 flex items-start space-x-2">
               <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
               <p className="text-xs text-blue-800 dark:text-blue-200">
-                <strong>Note:</strong> Users can be invited via email or SSO. Invited users will receive an email with setup instructions.
+                <strong>Note:</strong> Invited users will receive an email with setup instructions and a secure link to create their account.
               </p>
             </div>
           </div>
@@ -435,11 +595,17 @@ export default function UserAccessPage() {
                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Deactivation Options</div>
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
-                    <Switch defaultChecked={true} />
+                    <Switch
+                      checked={userLifecycleSettings.immediateDeactivation}
+                      onCheckedChange={(checked) => setUserLifecycleSettings(prev => ({ ...prev, immediateDeactivation: checked }))}
+                    />
                     <span className="text-sm text-slate-700 dark:text-slate-300">Immediate deactivation</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Switch />
+                    <Switch
+                      checked={userLifecycleSettings.scheduledDeactivation}
+                      onCheckedChange={(checked) => setUserLifecycleSettings(prev => ({ ...prev, scheduledDeactivation: checked }))}
+                    />
                     <span className="text-sm text-slate-700 dark:text-slate-300">Scheduled deactivation</span>
                   </div>
                 </div>
@@ -572,7 +738,10 @@ export default function UserAccessPage() {
                 <div className="space-y-2">
                   {['Warehouse A', 'Warehouse B', 'Warehouse C'].map((wh) => (
                     <div key={wh} className="flex items-center space-x-2">
-                      <Switch />
+                      <Switch
+                        checked={warehouseAccess[wh as keyof typeof warehouseAccess] || false}
+                        onCheckedChange={(checked) => setWarehouseAccess(prev => ({ ...prev, [wh]: checked }))}
+                      />
                       <span className="text-sm text-slate-700 dark:text-slate-300">{wh}</span>
                     </div>
                   ))}
@@ -596,7 +765,10 @@ export default function UserAccessPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {['Inventory', 'Quality', 'Recall', 'Reports', 'Procurement', 'Sales'].map((module) => (
                 <div key={module} className="flex items-center space-x-2">
-                  <Switch />
+                  <Switch
+                    checked={moduleAccess[module as keyof typeof moduleAccess] || false}
+                    onCheckedChange={(checked) => setModuleAccess(prev => ({ ...prev, [module]: checked }))}
+                  />
                   <span className="text-sm text-slate-700 dark:text-slate-300">{module}</span>
                 </div>
               ))}
@@ -612,7 +784,10 @@ export default function UserAccessPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {['View', 'Create', 'Approve', 'Override'].map((action) => (
                 <div key={action} className="flex items-center space-x-2">
-                  <Switch />
+                  <Switch
+                    checked={actionAccess[action as keyof typeof actionAccess] || false}
+                    onCheckedChange={(checked) => setActionAccess(prev => ({ ...prev, [action]: checked }))}
+                  />
                   <span className="text-sm text-slate-700 dark:text-slate-300">{action}</span>
                 </div>
               ))}
@@ -629,14 +804,20 @@ export default function UserAccessPage() {
               <div className="space-y-2">
                 <Label className="text-sm">Time-based Access</Label>
                 <div className="flex items-center space-x-2">
-                  <Switch />
+                  <Switch
+                    checked={optionalRestrictions.timeBasedAccess}
+                    onCheckedChange={(checked) => setOptionalRestrictions(prev => ({ ...prev, timeBasedAccess: checked }))}
+                  />
                   <span className="text-sm text-slate-600 dark:text-slate-400">Enable time-based restrictions</span>
                 </div>
               </div>
               <div className="space-y-2">
                 <Label className="text-sm">IP / Location-based Access</Label>
                 <div className="flex items-center space-x-2">
-                  <Switch />
+                  <Switch
+                    checked={optionalRestrictions.ipLocationBasedAccess}
+                    onCheckedChange={(checked) => setOptionalRestrictions(prev => ({ ...prev, ipLocationBasedAccess: checked }))}
+                  />
                   <span className="text-sm text-slate-600 dark:text-slate-400">Linked to System & Security settings</span>
                 </div>
               </div>
@@ -720,29 +901,49 @@ export default function UserAccessPage() {
               <div className="space-y-2">
                 <Label className="text-sm">Approval Required for Role Escalation</Label>
                 <div className="flex items-center space-x-2">
-                  <Switch defaultChecked={true} />
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Required</span>
+                  <Switch
+                    checked={privilegedAccessConfig.approvalRequiredForRoleEscalation}
+                    onCheckedChange={(checked) => setPrivilegedAccessConfig(prev => ({ ...prev, approvalRequiredForRoleEscalation: checked }))}
+                  />
+                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                    {privilegedAccessConfig.approvalRequiredForRoleEscalation ? 'Required' : 'Not Required'}
+                  </span>
                 </div>
               </div>
               <div className="space-y-2">
                 <Label className="text-sm">Approval Required for Emergency Access</Label>
                 <div className="flex items-center space-x-2">
-                  <Switch defaultChecked={true} />
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Required</span>
+                  <Switch
+                    checked={privilegedAccessConfig.approvalRequiredForEmergencyAccess}
+                    onCheckedChange={(checked) => setPrivilegedAccessConfig(prev => ({ ...prev, approvalRequiredForEmergencyAccess: checked }))}
+                  />
+                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                    {privilegedAccessConfig.approvalRequiredForEmergencyAccess ? 'Required' : 'Not Required'}
+                  </span>
                 </div>
               </div>
               <div className="space-y-2">
                 <Label className="text-sm">Just-in-time Access (Time-bound)</Label>
                 <div className="flex items-center space-x-2">
-                  <Switch defaultChecked={true} />
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Enabled</span>
+                  <Switch
+                    checked={privilegedAccessConfig.justInTimeAccess}
+                    onCheckedChange={(checked) => setPrivilegedAccessConfig(prev => ({ ...prev, justInTimeAccess: checked }))}
+                  />
+                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                    {privilegedAccessConfig.justInTimeAccess ? 'Enabled' : 'Disabled'}
+                  </span>
                 </div>
               </div>
               <div className="space-y-2">
                 <Label className="text-sm">Automatic Privilege Expiry</Label>
                 <div className="flex items-center space-x-2">
-                  <Switch defaultChecked={true} />
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Enabled</span>
+                  <Switch
+                    checked={privilegedAccessConfig.automaticPrivilegeExpiry}
+                    onCheckedChange={(checked) => setPrivilegedAccessConfig(prev => ({ ...prev, automaticPrivilegeExpiry: checked }))}
+                  />
+                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                    {privilegedAccessConfig.automaticPrivilegeExpiry ? 'Enabled' : 'Disabled'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -833,13 +1034,115 @@ export default function UserAccessPage() {
             <div className="text-sm text-slate-600 dark:text-slate-400">
               All access changes are linked to central Audit Logs
             </div>
-            <Button variant="outline" size="sm">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setIsAuditLogDialogOpen(true)}
+            >
               <FileText className="h-4 w-4 mr-2" />
               View Full Audit Log
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* Full Audit Log Dialog */}
+      <Dialog open={isAuditLogDialogOpen} onOpenChange={setIsAuditLogDialogOpen}>
+        <DialogContent className="max-w-5xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Full Access Audit Log</DialogTitle>
+            <DialogDescription>
+              Complete audit trail of all user access changes, role assignments, and privilege elevations
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Timestamp</TableHead>
+                  <TableHead>User</TableHead>
+                  <TableHead>Action</TableHead>
+                  <TableHead>Details</TableHead>
+                  <TableHead>Changed By</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {mockAuditEvents.map((event) => (
+                  <TableRow key={event.id}>
+                    <TableCell className="font-mono text-xs">{event.timestamp}</TableCell>
+                    <TableCell className="font-medium">{event.user}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{event.action}</Badge>
+                    </TableCell>
+                    <TableCell>{event.details}</TableCell>
+                    <TableCell>{event.changedBy}</TableCell>
+                    <TableCell>
+                      <Badge variant="default">Completed</Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {/* Additional sample audit entries */}
+                <TableRow>
+                  <TableCell className="font-mono text-xs">3 weeks ago</TableCell>
+                  <TableCell className="font-medium">Sarah Johnson</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">Access scope changed</Badge>
+                  </TableCell>
+                  <TableCell>Module access updated: Added Quality module</TableCell>
+                  <TableCell>The Gourang</TableCell>
+                  <TableCell>
+                    <Badge variant="default">Completed</Badge>
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-mono text-xs">1 month ago</TableCell>
+                  <TableCell className="font-medium">Mike Wilson</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">Privilege elevation</Badge>
+                  </TableCell>
+                  <TableCell>Elevated to Admin role for emergency maintenance</TableCell>
+                  <TableCell>The Gourang</TableCell>
+                  <TableCell>
+                    <Badge variant="default">Completed</Badge>
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-mono text-xs">1 month ago</TableCell>
+                  <TableCell className="font-medium">Lisa Chen</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">User activated</Badge>
+                  </TableCell>
+                  <TableCell>User account activated after invitation acceptance</TableCell>
+                  <TableCell>The Gourang</TableCell>
+                  <TableCell>
+                    <Badge variant="default">Completed</Badge>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+            
+            <div className="text-xs text-slate-500 dark:text-slate-400 pt-2 border-t">
+              <Info className="h-3 w-3 inline mr-1" />
+              All access control changes are automatically audit logged for compliance and traceability. This log is read-only and linked to the central audit system.
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAuditLogDialogOpen(false)}>
+              Close
+            </Button>
+            <Button onClick={() => {
+              // TODO: Export audit log functionality
+              console.log('Export audit log')
+            }}>
+              <FileText className="h-4 w-4 mr-2" />
+              Export Log
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
