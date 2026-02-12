@@ -327,7 +327,7 @@ export function NotificationDropdown() {
   const handleAcknowledge = (id: string) => {
     // TODO: Call backend API to acknowledge notification
     // In real implementation, this would be: await acknowledgeNotification(id)
-    setAcknowledgedIds(prev => new Set([...prev, id]))
+    setAcknowledgedIds(prev => new Set([...Array.from(prev), id]))
     // Note: Acknowledged critical alerts remain visible but marked as acknowledged
   }
 

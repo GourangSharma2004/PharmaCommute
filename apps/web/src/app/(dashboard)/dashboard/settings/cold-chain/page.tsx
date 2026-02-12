@@ -177,9 +177,9 @@ export default function ColdChainConfigPage() {
     } else {
       // Add new profile
       const newProfile: TemperatureProfile = {
+        ...profileForm,
         id: Date.now().toString(),
-        ...profileForm as TemperatureProfile
-      }
+      } as TemperatureProfile
       setTemperatureProfiles(profiles => [...profiles, newProfile])
     }
     

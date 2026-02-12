@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth-store'
+import type { User as AuthUser } from '@/types/auth'
 import { ROLE_DISPLAY_NAMES } from '@/lib/permissions'
 import {
   Popover,
@@ -39,9 +40,9 @@ interface UserProfileData {
 }
 
 // Mock user data - will be replaced with real data later
-const getMockUserData = (user: any): UserProfileData => ({
+const getMockUserData = (user: AuthUser): UserProfileData => ({
   name: `${user.firstName} ${user.lastName}`,
-  role: ROLE_DISPLAY_NAMES[user.role] || user.role.replace('_', ' '),
+  role: ROLE_DISPLAY_NAMES[user.role] ?? user.role.replace('_', ' '),
   email: user.email,
   phone: '+91-99999-99999',
   lastLogin: 'Today, 10:42 AM',

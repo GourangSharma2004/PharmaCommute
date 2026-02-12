@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PharmaCommute - Frontend Preview</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        h1 {
+            color: #0f172a;
+            margin-bottom: 1rem;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .link {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: #3b82f6;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 0.5rem 0.5rem 0.5rem 0;
+        }
+        .link:hover {
+            background: #2563eb;
+        }
+        .status {
+            padding: 0.5rem 1rem;
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 PharmaCommute Frontend</h1>
+        
+        <div class="card">
+            <h2>Application Status</h2>
+            <div class="status">
+                <strong>Note:</strong> If the Next.js server is not running, please start it with: <code>cd apps/web && npm run dev</code>
+            </div>
+            <p>The server should be running on <strong>http://localhost:8080</strong></p>
+        </div>
+
+        <div class="card">
+            <h2>📱 Frontend Pages</h2>
+            <ul style="list-style: none; padding: 0;">
+                <li style="margin: 0.5rem 0;">
+                    <a href="http://localhost:8080" class="link">Home Page</a>
+                    <span> - Landing page with login/dashboard links</span>
+                </li>
+                <li style="margin: 0.5rem 0;">
+                    <a href="http://localhost:8080/auth/login" class="link">Login Page</a>
+                    <span> - Authentication interface</span>
+                </li>
+                <li style="margin: 0.5rem 0;">
+                    <a href="http://localhost:8080/dashboard" class="link">Dashboard</a>
+                    <span> - Main dashboard with stats and quick actions</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>🎨 Frontend Features</h2>
+            <ul style="margin-left: 1.5rem; line-height: 1.8;">
+                <li>Next.js 14 with TypeScript</li>
+                <li>Tailwind CSS with Dark Mode</li>
+                <li>Radix UI Components</li>
+                <li>Role-based Access Control</li>
+                <li>Responsive Design</li>
+                <li>Inventory Management Dashboard</li>
+                <li>Batch Tracking System</li>
+                <li>Quality Control Interface</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>🔧 To Start the Server</h2>
+            <pre style="background: #f1f5f9; padding: 1rem; border-radius: 4px; overflow-x: auto;">
+cd apps/web
+npm run dev
+            </pre>
+            <p style="margin-top: 1rem;">Then open <a href="http://localhost:8080" style="color: #3b82f6;">http://localhost:8080</a> in your browser</p>
+        </div>
+    </div>
+</body>
+</html>
